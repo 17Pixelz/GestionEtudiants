@@ -44,7 +44,8 @@ namespace GestionEtudiants.Controllers
                 return RedirectToAction("Login","Home");
             }
             var eid = Int32.Parse(Get("_Id"));
-            var fil = db.Inscriptions.Where(i => i.id == eid).FirstOrDefault();
+            var id_insc = db.Etudiants.Where(i => i.apogee == eid).FirstOrDefault();
+            var fil = db.Inscriptions.Where(i => i.id == id_insc.id_inscription).FirstOrDefault();
             var fil_mods = (from fm in db.Filieres where fm.id == fil.id_filiere select fm).FirstOrDefault();
             var id_mod = (from im in db.FiliereModules where im.FiliereId == fil_mods.id select im.ModuleId ).ToList();
             var modules = (from m in db.Modules where id_mod.Contains(m.id) select m).ToList();
@@ -73,7 +74,7 @@ namespace GestionEtudiants.Controllers
                 HttpContext.Session.SetString("_Nom", x.nom + " " + x.prenom);
                 HttpContext.Session.SetInt32("_Id", (int)x.id_inscription);
                 Set("_Nom", x.nom + " " + x.prenom, 60);
-                Set("_Id", x.id_inscription.ToString() , 60);
+                Set("_Id", x.apogee.ToString() , 60);
 
                 var claims = new List<Claim>
                 {
@@ -96,10 +97,21 @@ namespace GestionEtudiants.Controllers
         }
 
 
-        [HttpPost]
-        public IActionResult DemnderDocument(String type)
+
+
+
+        [Authorize]
+        public IActionResult Document()
         {
-            Document dc = new Document() { 
+            return View();
+        }
+
+        [Authorize]
+        [HttpPost]
+        public IActionResult Document(String type)
+        {
+            Document dc = new Document()
+            {
                 id_etudiant = Int32.Parse(Get("_Id")),
                 type = type
             };
@@ -111,18 +123,31 @@ namespace GestionEtudiants.Controllers
         }
 
 
+        [Authorize]
+        public IActionResult Profile()
+        {
+            Etudiant et = new Etudiant();
+            var eid = Int32.Parse(Get("_Id"));
+            et = db.Etudiants.Where(a => a.apogee == eid).SingleOrDefault();
+            
 
+            return View(et);
+        }
+
+        [Authorize]
         [HttpPost]
-        public IActionResult UpdateStudent(Etudiant et)
+        public IActionResult Profile(Etudiant et)
         {
             var eid = Int32.Parse(Get("_Id"));
-            var x = db.Etudiants.Where(a => a.apogee == et.apogee && a.password == et.password).SingleOrDefault();
-
-            x.password = et.password;
+            var x = db.Etudiants.Where(a => a.apogee == eid).SingleOrDefault();
+            x.email = et.email != null ? et.email : x.email;
+            x.password = et.password != null ? et.password : x.password;
             db.SaveChanges();
 
             return RedirectToAction("Profile", "Home");
         }
+
+
 
         [HttpPost]
         public async Task<IActionResult> Logout()
@@ -136,8 +161,9 @@ namespace GestionEtudiants.Controllers
         public IActionResult Consultation()
         {
             //var eid = HttpContext.Session.GetInt32("_Id");
-            var eid = Int32.Parse(Get("_Id")); 
-            var fil = db.Inscriptions.Where(i => i.id == eid).FirstOrDefault();
+            var eid = Int32.Parse(Get("_Id"));
+            var id_insc = db.Etudiants.Where(i => i.apogee == eid).FirstOrDefault();
+            var fil = db.Inscriptions.Where(i => i.id == id_insc.id_inscription).FirstOrDefault();
             var fil_mods = (from fm in db.Filieres where fm.id == fil.id_filiere select  fm ).FirstOrDefault();
             var id_mod = (from im in db.FiliereModules where im.FiliereId == fil_mods.id select im.ModuleId).ToList();
             var modules = (from m in db.Modules where id_mod.Contains(m.id) select m).ToList();
@@ -179,20 +205,11 @@ namespace GestionEtudiants.Controllers
 
         [Authorize]
         public IActionResult Delibiration()
-        {
-            
+        {   
             return View();
         }
 
-        [Authorize]
-        public IActionResult Profile()
-        {
-            //String a = HttpContext.Session.GetString("_Nom");
-            String a = Get("_Nom");
-            ViewData["nom"] = a;
-            
-            return View();
-        }
+        
 
         
 
